@@ -36,13 +36,22 @@ app.get('/', function(req, res) {
 app.get("/getJourneys", async(req, res, next) => {
     let mongoQuery = {}
 
-    console.log(req.query);
+    let dateFrom = new Date('2017-11-11')
+    let dateTo = new Date('2017-11-11')
+    let addMonths = 2;
 
-    if (req.query.dateFrom && req.query.dateTo && req.query.dateFrom !== '' && req.query.dateTo !== '') {
-        mongoQuery.DIA = {
-            $gte: new Date(req.query.dateFrom),
-            $lte: new Date(req.query.dateTo)
+    if (req.query.dateFrom && req.query.dateFrom !== '') {
+        dateFrom = new Date(req.query.dateFrom);
+        dateTo = new Date(req.query.dateFrom);
+        if (req.query.monthsNum && req.query.monthsNum <= 3) {
+            addMonths = req.query.monthsNum * 1; // al ser una cadena, se convierte en número con el producto
         }
+        dateTo.setMonth(dateTo.getMonth() + addMonths);
+    }
+
+    mongoQuery.DIA = {
+        $gte: dateFrom,
+        $lte: dateTo
     }
 
     if (req.query.provinceFrom && req.query.provinceFrom !== '') {
@@ -75,7 +84,6 @@ app.get("/getJourneys", async(req, res, next) => {
 
 
 app.get("/getProvincesOrigin", async(req, res, next) => {
-    console.log(req.params);
     const client = new MongoClient(uri);
     await client.connect().then(async() => {
         const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
@@ -87,7 +95,6 @@ app.get("/getProvincesOrigin", async(req, res, next) => {
 });
 
 app.get("/getProvincesDestination", async(req, res, next) => {
-    console.log(req.params);
     const client = new MongoClient(uri);
     await client.connect().then(async() => {
         const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
