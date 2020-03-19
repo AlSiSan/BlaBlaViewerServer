@@ -46,8 +46,8 @@ app.get("/getJourneys", async(req, res, next) => {
         if (req.query.monthsNum && req.query.monthsNum <= 3) {
             addMonths = req.query.monthsNum * 1; // al ser una cadena, se convierte en número con el producto
         }
-        dateTo.setMonth(dateTo.getMonth() + addMonths);
     }
+    dateTo.setMonth(dateTo.getMonth() + addMonths);
 
     mongoQuery.DIA = {
         $gte: dateFrom,
