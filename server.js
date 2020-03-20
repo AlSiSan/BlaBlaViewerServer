@@ -36,9 +36,9 @@ app.get('/', function(req, res) {
 app.get("/getJourneys", async(req, res, next) => {
     let mongoQuery = {}
 
-    let dateFrom = new Date('2017-11-11')
-    let dateTo = new Date('2017-11-11')
-    let addMonths = 2;
+    let dateFrom = new Date('2017-11-01')
+    let dateTo = new Date('2017-11-01')
+    let addMonths = 1;
 
     if (req.query.dateFrom && req.query.dateFrom !== '') {
         dateFrom = new Date(req.query.dateFrom);
@@ -47,7 +47,8 @@ app.get("/getJourneys", async(req, res, next) => {
             addMonths = req.query.monthsNum * 1; // al ser una cadena, se convierte en número con el producto
         }
     }
-    dateTo.setMonth(dateTo.getMonth() + addMonths);
+    dateTo.setMonth(dateTo.getMonth() + addMonths); // suma un mes
+    dateTo.setDate(dateTo.getDate() - 1); // resta un dia
 
     mongoQuery.DIA = {
         $gte: dateFrom,
@@ -74,7 +75,7 @@ app.get("/getJourneys", async(req, res, next) => {
     const client = new MongoClient(uri);
     await client.connect().then(async() => {
         const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
-        await collection.find(mongoQuery, { fields: { ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1 } })
+        await collection.find(mongoQuery, { fields: { DIA: 1, ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1 } })
             .toArray().then((databaseResponse) => {
                 res.json(databaseResponse);
                 client.close();
