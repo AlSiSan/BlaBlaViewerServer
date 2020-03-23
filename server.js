@@ -14,10 +14,11 @@ if (!process.env.DATABASE_URI) {
 }
 
 if (!process.env.DATABASE_URI) {
-    process.env.DATABASE_NAME = 'test';
+    // process.env.DATABASE_NAME = 'test';
+    process.env.DATABASE_NAME = 'blablachallenge';
 }
 
-const uri = "mongodb+srv://admin:admin123@blablaviewertest-exjko.mongodb.net/test?retryWrites=true&w=majority";
+const uri = "mongodb+srv://admin:admin123@blablaviewertest-exjko.mongodb.net/blablachallenge?retryWrites=true&w=majority";
 
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -72,10 +73,10 @@ app.get("/getJourneys", async(req, res, next) => {
     }
 
 
-    const client = new MongoClient(uri);
+    const client = new MongoClient(uri, { useUnifiedTopology: true });
     await client.connect().then(async() => {
         const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
-        await collection.find(mongoQuery, { fields: { DIA: 1, ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1 } })
+        await collection.find(mongoQuery, { fields: { DIA: 1, ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1, IMP_KM: 1 } })
             .toArray().then((databaseResponse) => {
                 res.json(databaseResponse);
                 client.close();
