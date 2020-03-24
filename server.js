@@ -9,31 +9,33 @@ const MongoClient = require('mongodb').MongoClient;
 let server_port = process.env.PORT || 1337;
 let server_host = 'localhost';
 
-if (!process.env.DATABASE_URI) {
-    process.env.DATABASE_URI = `mongodb://admin:${config.mongoPass}@blablaviewertest-exjko.mongodb.net/test?retryWrites=true&w=majority`;
-}
 
+// If the ddbb name is not in the env, it is generated
 if (!process.env.DATABASE_URI) {
     // process.env.DATABASE_NAME = 'test';
     process.env.DATABASE_NAME = 'blablachallenge';
 }
 
+// The mongodb uri
 const uri = "mongodb+srv://admin:admin123@blablaviewertest-exjko.mongodb.net/blablachallenge?retryWrites=true&w=majority";
 
+// In case it is needed for testing purposes in local
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
 
-
+// Path for static files
 app.use('/public', express.static(path.join(__dirname, '/public')));
 
+// Main path, redirecting the user to the client
 app.get('/', function(req, res) {
     var result = 'Servidor BlaBlaViewer <br> Usa el cliente en blablaviewer.herokuapp.com'
     res.send(result);
 });
 
+// Query geographic information according to the query params
 app.get("/getJourneys", async(req, res, next) => {
     let mongoQuery = {}
 
@@ -84,7 +86,7 @@ app.get("/getJourneys", async(req, res, next) => {
     }).catch((err) => console.log(err));
 });
 
-
+// get the list of origin provinces
 app.get("/getProvincesOrigin", async(req, res, next) => {
     const client = new MongoClient(uri);
     await client.connect().then(async() => {
@@ -96,6 +98,7 @@ app.get("/getProvincesOrigin", async(req, res, next) => {
     }).catch((err) => console.log(err));
 });
 
+// get the list of destination provinces
 app.get("/getProvincesDestination", async(req, res, next) => {
     const client = new MongoClient(uri);
     await client.connect().then(async() => {
