@@ -76,7 +76,7 @@ app.get("/getJourneys", async(req, res, next) => {
     const client = new MongoClient(uri, { useUnifiedTopology: true });
     await client.connect().then(async() => {
         const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
-        await collection.find(mongoQuery, { fields: { DIA: 1, ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1, IMP_KM: 1 } })
+        await collection.find(mongoQuery, { fields: { DIA: 1, ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1, IMP_KM: 1, VIAJES_CONFIRMADOS: 1 } })
             .toArray().then((databaseResponse) => {
                 res.json(databaseResponse);
                 client.close();
