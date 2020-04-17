@@ -43,11 +43,14 @@ app.get("/getJourneys", async(req, res, next) => {
     let dateTo = new Date('2017-11-01')
     let addMonths = 1;
 
+    let minOccR = req.query.minOccR && req.query.minOccR !== '' ? parseFloat(req.query.minOccR) : 0;
+    let maxOccR = req.query.maxOccR && req.query.maxOccR !== '' ? parseFloat(req.query.maxOccR) : 1;
+
     if (req.query.dateFrom && req.query.dateFrom !== '') {
         dateFrom = new Date(req.query.dateFrom);
         dateTo = new Date(req.query.dateFrom);
         if (req.query.monthsNum && req.query.monthsNum <= 3) {
-            addMonths = req.query.monthsNum * 1; // al ser una cadena, se convierte en número con el producto
+            addMonths = parseInt(req.query.monthsNum);
         }
     }
     dateTo.setMonth(dateTo.getMonth() + addMonths); // suma un mes
@@ -56,6 +59,28 @@ app.get("/getJourneys", async(req, res, next) => {
     mongoQuery.DIA = {
         $gte: dateFrom,
         $lte: dateTo
+    }
+
+    mongoQuery.$expr = {
+        $and: [{
+                $gte: [{
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }, minOccR]
+            },
+            {
+                $gte: [maxOccR, {
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }]
+            }
+        ]
     }
 
     if (req.query.provinceFrom && req.query.provinceFrom !== '') {
