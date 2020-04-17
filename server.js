@@ -31,7 +31,7 @@ app.use('/public', express.static(path.join(__dirname, '/public')));
 
 // Main path, redirecting the user to the client
 app.get('/', function(req, res) {
-    var result = 'Servidor BlaBlaViewer <br> Usa el cliente en blablaviewer.herokuapp.com'
+    var result = 'Servidor BlaBlaViewer <br> Usa el cliente en <a href="https://blablaviewer.herokuapp.com">blablaviewer.herokuapp.com</a>'
     res.send(result);
 });
 
