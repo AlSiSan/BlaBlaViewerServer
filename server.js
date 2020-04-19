@@ -35,8 +35,7 @@ app.get('/', function(req, res) {
     res.send(result);
 });
 
-// Query geographic information according to the query params
-app.get("/getJourneys", async(req, res, next) => {
+app.get("/getInfoPerDay", async(req, res, next) => {
     let mongoQuery = {}
 
     let dateFrom = new Date('2017-11-01')
@@ -49,7 +48,7 @@ app.get("/getJourneys", async(req, res, next) => {
     if (req.query.dateFrom && req.query.dateFrom !== '') {
         dateFrom = new Date(req.query.dateFrom);
         dateTo = new Date(req.query.dateFrom);
-        if (req.query.monthsNum && req.query.monthsNum <= 3) {
+        if (req.query.monthsNum) {
             addMonths = parseInt(req.query.monthsNum);
         }
     }
@@ -103,7 +102,277 @@ app.get("/getJourneys", async(req, res, next) => {
     const client = new MongoClient(uri, { useUnifiedTopology: true });
     await client.connect().then(async() => {
         const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
-        await collection.find(mongoQuery, { fields: { DIA: 1, ORIGEN_C: 1, DESTINO_C: 1, ORIGEN_P: 1, DESTINO_P: 1, IMP_KM: 1, VIAJES_CONFIRMADOS: 1 } })
+        await collection.aggregate([
+                { $match: mongoQuery },
+                {
+                    $group: {
+                        _id: '$DIA',
+                        IMP_KM: { $avg: { $toDouble: '$IMP_KM' } },
+                        VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ])
+            .toArray().then((databaseResponse) => {
+                res.json(databaseResponse);
+                client.close();
+            });
+    }).catch((err) => console.log(err));
+});
+
+app.get("/getInfoPerTrack", async(req, res, next) => {
+    let mongoQuery = {}
+
+    let dateFrom = new Date('2017-11-01')
+    let dateTo = new Date('2017-11-01')
+    let addMonths = 1;
+
+    let minOccR = req.query.minOccR && req.query.minOccR !== '' ? parseFloat(req.query.minOccR) : 0;
+    let maxOccR = req.query.maxOccR && req.query.maxOccR !== '' ? parseFloat(req.query.maxOccR) : 1;
+
+    if (req.query.dateFrom && req.query.dateFrom !== '') {
+        dateFrom = new Date(req.query.dateFrom);
+        dateTo = new Date(req.query.dateFrom);
+        if (req.query.monthsNum) {
+            addMonths = parseInt(req.query.monthsNum);
+        }
+    }
+    dateTo.setMonth(dateTo.getMonth() + addMonths); // suma un mes
+    dateTo.setDate(dateTo.getDate() - 1); // resta un dia
+
+    mongoQuery.DIA = {
+        $gte: dateFrom,
+        $lte: dateTo
+    }
+
+    mongoQuery.$expr = {
+        $and: [{
+                $gte: [{
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }, minOccR]
+            },
+            {
+                $gte: [maxOccR, {
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }]
+            }
+        ]
+    }
+
+    if (req.query.provinceFrom && req.query.provinceFrom !== '') {
+        mongoQuery.ORIGEN_P = req.query.provinceFrom
+    }
+
+    if (req.query.provinceTo && req.query.provinceTo !== '') {
+        mongoQuery.DESTINO_P = req.query.provinceTo
+    }
+
+    if (req.query.countryFrom && req.query.countryFrom !== '') {
+        mongoQuery.ORIGEN_S = req.query.countryFrom
+    }
+
+    if (req.query.countryTo && req.query.countryTo !== '') {
+        mongoQuery.DESTINO_S = req.query.countryTo
+    }
+
+
+    const client = new MongoClient(uri, { useUnifiedTopology: true });
+    await client.connect().then(async() => {
+        const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
+        await collection.aggregate([
+                { $match: mongoQuery },
+                {
+                    $group: {
+                        _id: { ori: '$ORIGEN_C', dest: '$DESTINO_C' },
+                        ORIGEN_P: { $addToSet: '$ORIGEN_P' },
+                        DESTINO_P: { $addToSet: '$DESTINO_P' },
+                        IMP_KM: { $avg: { $toDouble: '$IMP_KM' } },
+                        VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
+                    }
+                },
+                {
+                    $match: {
+                        VIAJES_CONFIRMADOS: {
+                            $gte: 10
+                        }
+                    }
+                }
+            ])
+            .toArray().then((databaseResponse) => {
+                res.json(databaseResponse);
+                client.close();
+            });
+    }).catch((err) => console.log(err));
+});
+app.get("/getInfoPerOrigin", async(req, res, next) => {
+    let mongoQuery = {}
+
+    let dateFrom = new Date('2017-11-01')
+    let dateTo = new Date('2017-11-01')
+    let addMonths = 1;
+
+    let minOccR = req.query.minOccR && req.query.minOccR !== '' ? parseFloat(req.query.minOccR) : 0;
+    let maxOccR = req.query.maxOccR && req.query.maxOccR !== '' ? parseFloat(req.query.maxOccR) : 1;
+
+    if (req.query.dateFrom && req.query.dateFrom !== '') {
+        dateFrom = new Date(req.query.dateFrom);
+        dateTo = new Date(req.query.dateFrom);
+        if (req.query.monthsNum) {
+            addMonths = parseInt(req.query.monthsNum);
+        }
+    }
+    dateTo.setMonth(dateTo.getMonth() + addMonths); // suma un mes
+    dateTo.setDate(dateTo.getDate() - 1); // resta un dia
+
+    mongoQuery.DIA = {
+        $gte: dateFrom,
+        $lte: dateTo
+    }
+
+    mongoQuery.$expr = {
+        $and: [{
+                $gte: [{
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }, minOccR]
+            },
+            {
+                $gte: [maxOccR, {
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }]
+            }
+        ]
+    }
+
+    if (req.query.provinceFrom && req.query.provinceFrom !== '') {
+        mongoQuery.ORIGEN_P = req.query.provinceFrom
+    }
+
+    if (req.query.provinceTo && req.query.provinceTo !== '') {
+        mongoQuery.DESTINO_P = req.query.provinceTo
+    }
+
+    if (req.query.countryFrom && req.query.countryFrom !== '') {
+        mongoQuery.ORIGEN_S = req.query.countryFrom
+    }
+
+    if (req.query.countryTo && req.query.countryTo !== '') {
+        mongoQuery.DESTINO_S = req.query.countryTo
+    }
+
+
+    const client = new MongoClient(uri, { useUnifiedTopology: true });
+    await client.connect().then(async() => {
+        const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
+        await collection.aggregate([
+                { $match: mongoQuery },
+                {
+                    $group: {
+                        _id: { ori: '$ORIGEN_P' },
+                        IMP_KM: { $avg: { $toDouble: '$IMP_KM' } },
+                        VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
+                    }
+                }
+            ])
+            .toArray().then((databaseResponse) => {
+                res.json(databaseResponse);
+                client.close();
+            });
+    }).catch((err) => console.log(err));
+});
+
+app.get("/getInfoPerDestination", async(req, res, next) => {
+    let mongoQuery = {}
+
+    let dateFrom = new Date('2017-11-01')
+    let dateTo = new Date('2017-11-01')
+    let addMonths = 1;
+
+    let minOccR = req.query.minOccR && req.query.minOccR !== '' ? parseFloat(req.query.minOccR) : 0;
+    let maxOccR = req.query.maxOccR && req.query.maxOccR !== '' ? parseFloat(req.query.maxOccR) : 1;
+
+    if (req.query.dateFrom && req.query.dateFrom !== '') {
+        dateFrom = new Date(req.query.dateFrom);
+        dateTo = new Date(req.query.dateFrom);
+        if (req.query.monthsNum) {
+            addMonths = parseInt(req.query.monthsNum);
+        }
+    }
+    dateTo.setMonth(dateTo.getMonth() + addMonths); // suma un mes
+    dateTo.setDate(dateTo.getDate() - 1); // resta un dia
+
+    mongoQuery.DIA = {
+        $gte: dateFrom,
+        $lte: dateTo
+    }
+
+    mongoQuery.$expr = {
+        $and: [{
+                $gte: [{
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }, minOccR]
+            },
+            {
+                $gte: [maxOccR, {
+                    $cond: [
+                        { $eq: ['$ASIENTOS_OFERTADOS', 0] },
+                        0,
+                        { $divide: ['$ASIENTOS_CONFIRMADOS', '$ASIENTOS_OFERTADOS'] }
+                    ]
+                }]
+            }
+        ]
+    }
+
+    if (req.query.provinceFrom && req.query.provinceFrom !== '') {
+        mongoQuery.ORIGEN_P = req.query.provinceFrom
+    }
+
+    if (req.query.provinceTo && req.query.provinceTo !== '') {
+        mongoQuery.DESTINO_P = req.query.provinceTo
+    }
+
+    if (req.query.countryFrom && req.query.countryFrom !== '') {
+        mongoQuery.ORIGEN_S = req.query.countryFrom
+    }
+
+    if (req.query.countryTo && req.query.countryTo !== '') {
+        mongoQuery.DESTINO_S = req.query.countryTo
+    }
+
+
+    const client = new MongoClient(uri, { useUnifiedTopology: true });
+    await client.connect().then(async() => {
+        const collection = client.db(process.env.DATABASE_NAME).collection("Journeys");
+        await collection.aggregate([
+                { $match: mongoQuery },
+                {
+                    $group: {
+                        _id: { dest: '$DESTINO_P' },
+                        IMP_KM: { $avg: { $toDouble: '$IMP_KM' } },
+                        VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
+                    }
+                }
+            ])
             .toArray().then((databaseResponse) => {
                 res.json(databaseResponse);
                 client.close();
