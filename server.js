@@ -199,13 +199,6 @@ app.get("/getInfoPerTrack", async(req, res, next) => {
                         VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
                         OFERTANTES_NUEVOS: { $sum: '$OFERTANTES_NUEVOS' },
                     }
-                },
-                {
-                    $match: {
-                        VIAJES_CONFIRMADOS: {
-                            $gte: 10
-                        }
-                    }
                 }
             ])
             .toArray().then((databaseResponse) => {
