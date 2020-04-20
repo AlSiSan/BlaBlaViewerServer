@@ -109,6 +109,7 @@ app.get("/getInfoPerDay", async(req, res, next) => {
                         _id: '$DIA',
                         IMP_KM: { $avg: { $toDouble: '$IMP_KM' } },
                         VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
+                        OFERTANTES_NUEVOS: { $sum: '$OFERTANTES_NUEVOS' },
                     }
                 },
                 { $sort: { _id: 1 } }
@@ -196,6 +197,7 @@ app.get("/getInfoPerTrack", async(req, res, next) => {
                         DESTINO_P: { $addToSet: '$DESTINO_P' },
                         IMP_KM: { $avg: { $toDouble: '$IMP_KM' } },
                         VIAJES_CONFIRMADOS: { $sum: '$VIAJES_CONFIRMADOS' },
+                        OFERTANTES_NUEVOS: { $sum: '$OFERTANTES_NUEVOS' },
                     }
                 },
                 {
